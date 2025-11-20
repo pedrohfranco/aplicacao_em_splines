@@ -21,8 +21,8 @@ class MathError(Exception):
 
 class PolynomialData():
   def __init__(self, coeffs):
-    if PolynomialData.is_valid_coeffs(coeffs): 
-      self.c_array, self.e_array = self.__transform(coeffs)
+    if self.is_valid_coeffs(coeffs): 
+      self.e_array, self.c_array = self.__transform(coeffs)
     else:
       raise MathError(
         """Os coeficientes/expoentes informados não correspondem ao formato desejado.
@@ -45,9 +45,9 @@ class PolynomialData():
       return True
     return False
 
-  @staticmethod
-  def is_valid_coeffs(coeffs):
+  def is_valid_coeffs(self, coeffs):
     is_valid = PolynomialData.__is_valid_coeffs_datatype(coeffs)
+    self._is_sparse = False
 
     if not is_valid:
       return False
@@ -59,7 +59,9 @@ class PolynomialData():
         if not isinstance(exp, int) or not isinstance(coeff, Number):
           is_valid = False
     
-    if is_sparse and is_valid: return True
+    if is_sparse and is_valid:
+      self._is_sparse = is_sparse
+      return True
 
     if is_valid:
       for coeff in coeffs:
@@ -87,17 +89,90 @@ class PolynomialData():
   @property
   def coefficients(self):
     return self.c_array
+  
+  @property
+  def is_sparse(self):
+    return self._is_sparse
 
 class Polynomial():
-  def __init__(self, coeffs: np.ndarray | dict):
+  def __init__(self, coeffs: np.ndarray | dict, var: str = 'x'):
     self.__data = PolynomialData(coeffs)
     self._coefficients = self.__data.coefficients
     self._exponents = self.__data.exponents
+    self._is_sparse = self.__data.is_sparse
+    self._variable = var
   
-  def __str__(self): pass
-  def __add__(self, p): pass
+  def __str__(self):
+    if self.is_zero: return '0'
+
+    vect_txt = np.vectorize(str)
+    str_coeffs = list(vect_txt(self._coefficients))
+    txt = []
+
+    for i in range(len(self)):
+      if self._coefficients[i] == 0:
+        continue
+      if self._exponents[i] == 0:
+        txt.append(f"{str_coeffs[i]}")
+        continue
+      if self._exponents[i] == 1:
+        txt.append(f"{str_coeffs[i]}{self._variable}")
+        continue
+      else:
+        txt.append(f"{str_coeffs[i]}{self._variable}^{self._exponents[i]}")
+
+    txt = " + ".join(txt)
+    
+    return txt
+
+  @staticmethod
+  def __safe_dict_add(pairs1: dict, pairs2: dict, i: int, initial_sum: Number = 0):
+    _sum = initial_sum
+    if i in pairs1.keys():
+      _sum += pairs1[i]
+    if i in pairs2.keys():
+      _sum += pairs2[i]
+    return _sum
+
+  def __add__(self, p):
+    if isinstance(p, Polynomial):
+      coef_exp_pairs_self = dict(zip(
+        self._exponents,
+        self._coefficients
+      ))
+      coef_exp_pairs_other = dict(zip(
+        p.exponents,
+        p.coefficients
+      ))
+
+      new_data = {}
+
+      max_exp = max(max(self._exponents), max(p.exponents))
+
+      for i in range(max_exp+1):
+        _sum = Polynomial.__safe_dict_add(
+          coef_exp_pairs_self,
+          coef_exp_pairs_other,
+          i
+        )
+        if _sum == 0: continue
+        new_data[i] = _sum
+
+    if isinstance(p, Number):
+      new_coeffs = self._coefficients[0] + p
+      new_data = dict(zip(
+        self._exponents,
+        new_coeffs
+      ))
+
+    return Polynomial(new_data)
+
+    
   def __mul__(self, p): pass
   def __eq__(self, p): pass
+  def __len__(self):
+    return len(self._coefficients)
+  
   def evaluate(self, *x): pass
   def derivate(self): pass
   def integrate(self, *over): pass
@@ -110,9 +185,20 @@ class Polynomial():
   def exponents(self):
     return self._exponents
 
+  @property
+  def is_zero(self):
+    for boolean in self._coefficients == 0:
+      if not boolean: return False
+    return True
+
+  @property
+  def is_sparse(self):
+    return self._is_sparse
+
 
 if __name__ == "__main__":
-  p = Polynomial({9.5: 9, 7: 5})
-  print(p.exponents)
-  print(p.coefficients)
+  p = Polynomial({9: 8})
+  g = Polynomial({0: 9, 1: 2, 5: 6})
+  h = Polynomial([0, 0, 0, 0, 0])
+  print(h)
 
