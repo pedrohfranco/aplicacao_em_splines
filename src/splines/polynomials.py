@@ -1,6 +1,7 @@
 import numpy as np
 from numbers import Number
 from typing import Tuple
+import fft
 
 """
 Abaixo, está a implementação de um polinômio univariado, com algumas classes auxiliares para a
@@ -74,12 +75,12 @@ class PolynomialData():
     if PolynomialData.__maybe_sparse(coeffs):
       return (
         np.array(list(coeffs.keys())),
-        np.array(list(coeffs.values()))
+        np.array(list(coeffs.values()), dtype=complex)
       )
     
     return (
       np.array(range(len(coeffs))),
-      np.array(coeffs)
+      np.array(coeffs, dtype=complex)
     )
   
   @property
@@ -106,7 +107,12 @@ class Polynomial():
     if self.is_zero: return '0'
 
     vect_txt = np.vectorize(str)
-    str_coeffs = list(vect_txt(self._coefficients))
+
+    if ~self._coefficients.imag.all():
+      str_coeffs = list(vect_txt(self._coefficients.real))
+    else:
+      str_coeffs = list(vect_txt(self._coefficients))
+
     txt = []
 
     for i in range(len(self)):
@@ -146,8 +152,7 @@ class Polynomial():
       ))
 
       new_data = {}
-
-      max_exp = max(max(self._exponents), max(p.exponents))
+      max_exp = np.max(self._exponents, p.exponents)
 
       for i in range(max_exp+1):
         _sum = Polynomial.__safe_dict_add(
@@ -166,17 +171,56 @@ class Polynomial():
       ))
 
     return Polynomial(new_data)
+  
+  def to_dense(self, inplace: bool = False, return_poly: bool = False):
+    if len(self) == 0:
+      dense = np.array([0], dtype=complex)
+      if inplace: self._coefficients = dense
+    else:
+      max_exp = np.max(self._exponents)
+      dense = np.zeros(max_exp + 1, dtype=complex)
+      dense[self._exponents] = self._coefficients
+      if inplace: self._coefficients = dense
+    return Polynomial(dense) if return_poly else dense
 
-    
-  def __mul__(self, p): pass
-  def __eq__(self, p): pass
+  def __mul__(self, p):
+    if isinstance(p, Number):
+      new_data = dict(zip(
+        self._exponents,
+        self._coefficients * p
+      ))
+      return Polynomial(new_data)
+
+    if isinstance(p, Polynomial):
+      dense_coeffs_self = self.to_dense()
+      dense_coeffs_other = p.to_dense()
+
+      final_coeffs = fft.evaluate(dense_coeffs_self, dense_coeffs_other)
+      
+      return Polynomial(final_coeffs)
+      
+    raise MathError("Multiplicação suportada apenas por escalares ou outros polinômios.")
+  
+  def __eq__(self, p):
+    if not np.array_equal(self._exponents, p.exponents): return False
+    if not np.array_equal(self._coefficients, p.coefficients): return False
+    return True
+
   def __len__(self):
     return len(self._coefficients)
   
-  def evaluate(self, *x): pass
+  def evaluate(self, x):
+    _inputs = np.pow(
+      np.full(len(self), x),
+      self._exponents)
+    value = np.sum(np.multiply(self._coefficients, _inputs))
+
+    return value
+
   def derivate(self): pass
   def integrate(self, *over): pass
 
+  # Propriedades
   @property
   def coefficients(self):
     return self._coefficients
@@ -196,9 +240,13 @@ class Polynomial():
     return self._is_sparse
 
 
+
 if __name__ == "__main__":
-  p = Polynomial({9: 8})
+  p = Polynomial({0: 9, 1: 2, 5: 6})
   g = Polynomial({0: 9, 1: 2, 5: 6})
   h = Polynomial([0, 0, 0, 0, 0])
-  print(h)
+  print(p * g)
+  print(p == g)
+  print(h.evaluate(2))
+  print(g.evaluate(2))
 
