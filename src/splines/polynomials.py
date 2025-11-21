@@ -57,7 +57,7 @@ class PolynomialData():
 
     if is_sparse and is_valid:
       for exp, coeff in coeffs.items():
-        if not isinstance(exp, int) or not isinstance(coeff, Number):
+        if not isinstance(exp, Number) or not isinstance(coeff, (Number, complex)):
           is_valid = False
     
     if is_sparse and is_valid:
@@ -217,8 +217,62 @@ class Polynomial():
 
     return value
 
-  def derivate(self): pass
-  def integrate(self, *over): pass
+  def derivate(self, inplace: bool = False):
+    if self.is_zero: return 0
+
+    new_exp = self._exponents.copy()
+    new_coeffs = self._coefficients.copy()
+
+    if_less_zero = np.vectorize(lambda x: False if x == -1 else True)
+
+    new_coeffs = np.multiply(new_coeffs, new_exp)
+    new_exp -= 1
+
+    mask = if_less_zero(new_exp)
+
+    new_exp = new_exp[mask]
+    new_coeffs = new_coeffs[mask]
+
+    if inplace:
+      self._exponents = new_exp
+      self._coefficients = new_coeffs
+
+    new_data = dict(zip(
+      new_exp,
+      new_coeffs
+    ))
+    if inplace:
+      return None
+    return Polynomial(new_data)
+
+  def integrate(self, interval: list = [], inplace: bool = False):
+    if self.is_zero: return 0
+
+    new_exp = self._exponents.copy()
+    new_coeffs = self._coefficients.copy()
+
+    new_exp += 1
+
+    new_coeffs = np.divide(new_coeffs, new_exp)
+
+    if inplace:
+      self._exponents = new_exp
+      self._coefficients = new_coeffs
+
+    new_data = dict(zip(
+      new_exp,
+      new_coeffs
+    ))
+
+    primitive = Polynomial(new_data)
+
+    if 3 > len(interval) > 0:
+      return primitive.evaluate(interval[1]) - primitive.evaluate(interval[0])
+
+    if inplace:
+      return None
+    
+    return primitive
 
   # Propriedades
   @property
@@ -249,4 +303,5 @@ if __name__ == "__main__":
   print(p == g)
   print(h.evaluate(2))
   print(g.evaluate(2))
+  print(p.derivate())
 
