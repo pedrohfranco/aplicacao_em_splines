@@ -152,7 +152,7 @@ class Polynomial():
       ))
 
       new_data = {}
-      max_exp = np.max(self._exponents, p.exponents)
+      max_exp = max(max(self._exponents), max(p.exponents))
 
       for i in range(max_exp+1):
         _sum = Polynomial.__safe_dict_add(
@@ -172,6 +172,9 @@ class Polynomial():
 
     return Polynomial(new_data)
   
+  def __sub__(self, p):
+    return self + -1 * p
+
   def to_dense(self, inplace: bool = False, return_poly: bool = False):
     if len(self) == 0:
       dense = np.array([0], dtype=complex)
@@ -201,6 +204,9 @@ class Polynomial():
       
     raise MathError("Multiplicação suportada apenas por escalares ou outros polinômios.")
   
+  def __rmul__(self, p):
+    return self.__mul__(p)
+
   def __eq__(self, p):
     if not np.array_equal(self._exponents, p.exponents): return False
     if not np.array_equal(self._coefficients, p.coefficients): return False
@@ -297,9 +303,10 @@ class Polynomial():
 
 if __name__ == "__main__":
   p = Polynomial({0: 9, 1: 2, 5: 6})
-  g = Polynomial({0: 9, 1: 2, 5: 6})
+  g = Polynomial({0: 9, 1: 2})
   h = Polynomial([0, 0, 0, 0, 0])
-  print(p * g)
+  print(p * -1)
+  print(p - g)
   print(p == g)
   print(h.evaluate(2))
   print(g.evaluate(2))
