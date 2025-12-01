@@ -70,7 +70,6 @@ def plot_spline_2d(points, num_points=400, save_path="spline_petr4_normalizado.p
 
 # ==========================================
 # 3) OPCIONAL: UMA VISUALIZAÇÃO 3D SIMPLES
-# ==========================================
 
 def plot_spline_error_3d(interpolador, dias, precos_reais_norm):
     """
@@ -79,11 +78,8 @@ def plot_spline_error_3d(interpolador, dias, precos_reais_norm):
       eixo Y -> valor da spline
       eixo Z -> erro (spline - real)
 
-    'dias' e 'precos_reais_norm' você preenche com os dias em que tem valor real
+    'dias' e 'precos_reais_norm' devem ser preenchidos com os dias em que tem valor real
     (normalizado) para comparar com a spline.
-
-    Se ainda não tiver esses dados intermediários, você pode
-    comentar essa parte e focar só na plotagem 2D.
     """
     # Avalia a spline nesses dias
     precos_interp = np.array([interpolador.evaluate(d) for d in dias])
@@ -104,7 +100,6 @@ def plot_spline_error_3d(interpolador, dias, precos_reais_norm):
 
 # ===========================
 # 4) MAIN
-# ===========================
 
 if __name__ == "__main__":
     # 4.1) Dados base (4 pontos)
@@ -114,8 +109,6 @@ if __name__ == "__main__":
     interpolador, x_plot, y_plot = plot_spline_2d(points)
 
     # 4.3) Plot 3D (opcional - preencha se tiver mais dados reais)
-    # Exemplo: suponha que vocês tenham valores reais normalizados para alguns dias intermediários
-    # (abaixo é só um exemplo de estrutura, troque pelos dados reais de vocês):
 
     # dias_intermediarios = np.array([2, 4, 7, 10, 13], dtype=float)
     # precos_reais_norm = np.array([...], dtype=float)  # coloque aqui os valores normalizados desses dias
