@@ -1,0 +1,116 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from splines import SplineInterpolator
+from plot3d_utils import plot_points_3d
+
+
+# ==========================================
+# 1) FUNÇÃO PARA OBTER OS PONTOS NORMALIZADOS  
+
+def get_petr4_normalized_points():
+    """
+    Retorna os pontos normalizados descritos no relatório:
+
+    Dias: 13, 18, 24, 27/11/2025 -> mapeados para 1, 6, 12, 15
+    Valores normalizados pelo máximo (32.8):
+        (1; 0.9865985),
+        (6; 0.996951),
+        (12; 0.992683),
+        (15; 0.984146)
+    """
+    x = np.array([1, 6, 12, 15], dtype=float)
+    y = np.array([0.9865985, 0.996951, 0.992683, 0.984146], dtype=float)
+
+    # formato esperado pelo SplineInterpolator: lista de pares [x, f(x)] ou dict {x: f(x)}
+    points = list(zip(x, y))
+    return points, x, y
+
+
+# ==========================================
+# 2) FUNÇÃO GENÉRICA DE PLOT 2D DA SPLINE
+
+def plot_spline_2d(points, num_points=400, save_path="spline_petr4_normalizado.png"):
+    """
+    Cria o Spline cúbico natural a partir dos pontos e plota:
+      - Pontos originais
+      - Curva da spline em uma malha fina
+
+    points: list de pares (x, y) ou dict {x: y}
+    """
+    # Cria o interpolador de spline
+    interpolador = SplineInterpolator(points)
+
+    # Extrai os x em ordem crescente (o SplineInterpolator já faz isso, mas deixo explícito)
+    x_nos = interpolador.x
+    y_nos = interpolador.f
+
+    # Malha fina para plotar a curva da spline
+    x_plot = np.linspace(x_nos[0], x_nos[-1], num_points)
+    y_plot = np.array([interpolador.evaluate(xi) for xi in x_plot])
+
+    # Plot 2D
+    plt.figure(figsize=(8, 5))
+    plt.scatter(x_nos, y_nos, color="red", label="Dados normalizados (PETR4)")
+    plt.plot(x_plot, y_plot, label="Spline cúbico natural", linewidth=2)
+
+    plt.title("Spline cúbico natural ajustado aos dados normalizados de PETR4")
+    plt.xlabel("Dia (13/11/2025 = 1, etc.)")
+    plt.ylabel("Preço normalizado")
+    plt.grid(alpha=0.3)
+    plt.legend()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    plt.show()
+
+    return interpolador, x_plot, y_plot
+
+
+# ==========================================
+# 3) OPCIONAL: UMA VISUALIZAÇÃO 3D SIMPLES
+
+def plot_spline_error_3d(interpolador, dias, precos_reais_norm):
+    """
+    Exemplo de visualização 3D:
+      eixo X -> dia
+      eixo Y -> valor da spline
+      eixo Z -> erro (spline - real)
+
+    'dias' e 'precos_reais_norm' devem ser preenchidos com os dias em que tem valor real
+    (normalizado) para comparar com a spline.
+    """
+    # Avalia a spline nesses dias
+    precos_interp = np.array([interpolador.evaluate(d) for d in dias])
+    erros = precos_interp - precos_reais_norm
+
+    # Usa o utilitário 3D já pronto
+    plot_points_3d(
+        x=dias,
+        y=precos_interp,
+        z=erros,
+        title="Preço interpolado x Erro (visualização 3D)",
+        xlabel="Dia",
+        ylabel="Preço interpolado (normalizado)",
+        zlabel="Erro (spline - real)",
+        save_path="spline_petr4_erro_3d.png",
+    )
+
+
+# ===========================
+# 4) MAIN
+
+if __name__ == "__main__":
+    # 4.1) Dados base (4 pontos)
+    points, x_nos, y_nos = get_petr4_normalized_points()
+
+    # 4.2) Plot 2D
+    interpolador, x_plot, y_plot = plot_spline_2d(points)
+
+    # 4.3) Plot 3D
+
+    # dias_intermediarios = np.array([2, 4, 7, 10, 13], dtype=float)
+    # precos_reais_norm = np.array([...], dtype=float)  # coloque aqui os valores normalizados desses dias
+
+    # plot_spline_error_3d(interpolador, dias_intermediarios, precos_reais_norm)
