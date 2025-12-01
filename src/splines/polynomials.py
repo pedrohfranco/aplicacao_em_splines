@@ -57,7 +57,7 @@ class PolynomialData():
 
     if is_sparse and is_valid:
       for exp, coeff in coeffs.items():
-        if not isinstance(exp, int) or not isinstance(coeff, Number):
+        if not isinstance(exp, Number) or not isinstance(coeff, (Number, complex)):
           is_valid = False
     
     if is_sparse and is_valid:
@@ -152,7 +152,7 @@ class Polynomial():
       ))
 
       new_data = {}
-      max_exp = np.max(self._exponents, p.exponents)
+      max_exp = max(max(self._exponents), max(p.exponents))
 
       for i in range(max_exp+1):
         _sum = Polynomial.__safe_dict_add(
@@ -172,6 +172,9 @@ class Polynomial():
 
     return Polynomial(new_data)
   
+  def __sub__(self, p):
+    return self + -1 * p
+
   def to_dense(self, inplace: bool = False, return_poly: bool = False):
     if len(self) == 0:
       dense = np.array([0], dtype=complex)
@@ -201,6 +204,9 @@ class Polynomial():
       
     raise MathError("Multiplicação suportada apenas por escalares ou outros polinômios.")
   
+  def __rmul__(self, p):
+    return self.__mul__(p)
+
   def __eq__(self, p):
     if not np.array_equal(self._exponents, p.exponents): return False
     if not np.array_equal(self._coefficients, p.coefficients): return False
@@ -217,8 +223,62 @@ class Polynomial():
 
     return value
 
-  def derivate(self): pass
-  def integrate(self, *over): pass
+  def derivate(self, inplace: bool = False):
+    if self.is_zero: return 0
+
+    new_exp = self._exponents.copy()
+    new_coeffs = self._coefficients.copy()
+
+    if_less_zero = np.vectorize(lambda x: False if x == -1 else True)
+
+    new_coeffs = np.multiply(new_coeffs, new_exp)
+    new_exp -= 1
+
+    mask = if_less_zero(new_exp)
+
+    new_exp = new_exp[mask]
+    new_coeffs = new_coeffs[mask]
+
+    if inplace:
+      self._exponents = new_exp
+      self._coefficients = new_coeffs
+
+    new_data = dict(zip(
+      new_exp,
+      new_coeffs
+    ))
+    if inplace:
+      return None
+    return Polynomial(new_data)
+
+  def integrate(self, interval: list = [], inplace: bool = False):
+    if self.is_zero: return 0
+
+    new_exp = self._exponents.copy()
+    new_coeffs = self._coefficients.copy()
+
+    new_exp += 1
+
+    new_coeffs = np.divide(new_coeffs, new_exp)
+
+    if inplace:
+      self._exponents = new_exp
+      self._coefficients = new_coeffs
+
+    new_data = dict(zip(
+      new_exp,
+      new_coeffs
+    ))
+
+    primitive = Polynomial(new_data)
+
+    if 3 > len(interval) > 0:
+      return primitive.evaluate(interval[1]) - primitive.evaluate(interval[0])
+
+    if inplace:
+      return None
+    
+    return primitive
 
   # Propriedades
   @property
@@ -243,10 +303,12 @@ class Polynomial():
 
 if __name__ == "__main__":
   p = Polynomial({0: 9, 1: 2, 5: 6})
-  g = Polynomial({0: 9, 1: 2, 5: 6})
+  g = Polynomial({0: 9, 1: 2})
   h = Polynomial([0, 0, 0, 0, 0])
-  print(p * g)
+  print(p * -1)
+  print(p - g)
   print(p == g)
   print(h.evaluate(2))
   print(g.evaluate(2))
+  print(p.derivate())
 
