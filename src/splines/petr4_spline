@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from splines import SplineInterpolator
 from plot3d_utils import plot_points_3d
 
+import warnings
+warnings.filterwarnings("ignore", module="numpy")
+warnings.filterwarnings("ignore", module="matplotlib")
 
 # ==========================================
 # 1) FUNÇÃO PARA OBTER OS PONTOS NORMALIZADOS  
@@ -107,8 +110,26 @@ if __name__ == "__main__":
 
     # 4.2) Plot 2D
     interpolador, x_plot, y_plot = plot_spline_2d(points)
+    
+    # 4.3) Dados Interpolados
+    intermediarios_x = [2,5,7,9,13,14]
+    interpolados = [interpolador.evaluate(k) for k in intermediarios_x]
+    intermediarios_y = [0.993902,0.99878,1,0.992683,0.98628,0.987195,0.984146]
+    print("Dados Intermediários Interpolados")
+    print()
+    for s in range(6):
+        print("x = %s: %s"%(intermediarios_x[s],interpolados[s]))
+        print()
 
-    # 4.3) Plot 3D
+    # 4.4) Print dos erros absolutos
+    intermediarios_y = [0.993902,0.99878,1,0.992683,0.98628,0.987195,0.984146]
+    print("Erro Absoluto da Interpolação")
+    print()
+    for s in range(6):
+        print("Erro Absoluto (x=%s): %s"%(intermediarios_x[s],abs(interpolados[s]-intermediarios_y[s])))
+        print()
+
+    # 4.5) Plot 3D
 
     # dias_intermediarios = np.array([2, 4, 7, 10, 13], dtype=float)
     # precos_reais_norm = np.array([...], dtype=float)  # coloque aqui os valores normalizados desses dias
